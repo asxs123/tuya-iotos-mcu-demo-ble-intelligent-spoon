@@ -6,6 +6,8 @@ This project is developed using Tuya SDK, which enables you to quickly develop b
 
 ## Introduction  
 
+![Image of Yaktocat](https://image.lceda.cn/avatars/2021/8/Ws93ELldBIXITlaCq0kmIJoMG4y8Th6FQbyloXKx.png)
+
 This Demo uses the Tuya smart cloud platform, Tuya smart APP and IoTOS Embedded MCU SDK to realize a salty spoon.
 
 The implemented features include:
