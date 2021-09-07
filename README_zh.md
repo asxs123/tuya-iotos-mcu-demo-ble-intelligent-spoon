@@ -25,8 +25,53 @@
 
 + 点击软件中的编译，并完成下载
 
+### 文件介绍 
+
+```
+├── SYSTEM
+│   ├── main.c
+│   └── main.h
+└── SDK
+    ├── mcu_api.c
+    ├── mcu_api.h
+    ├── protocol.c
+    ├── protocol.h
+    ├── system.c
+    ├── system.h
+    └── bluetooth.h
+    
+```
 
 
+
+### Demo入口
+
+入口文件：main.c
+
+重要函数：main()
+
++ 对mcu的IO口，USART，定时器等进行初始化配置，所有事件在while(1)中轮询判断。
+
+
+
+### DP点相关
+
++ 上报dp点处理: mcu_dp_value_update()
+
+| 函数名 | unsigned char mcu_dp_value_update(unsigned char dpid,unsigned long value) |
+| ------ | ------------------------------------------------------------ |
+| dpid   | DP的ID号                                                     |
+| value  | DP数据                                                       |
+| Return | SUCCESS: 成功  ERROR: 失败                                   |
+
+
+
+### I/O 列表 
+
+| ADC  |  UASRT1  | Frequency |
+| :--: | :------: | :-------: |
+| P5.5 | P3.3 TXD |   P5.4    |
+|      | P3.2 RXD |           |
 
 ## 相关文档
 
