@@ -8,32 +8,73 @@ This project is developed using Tuya SDK, which enables you to quickly develop b
 
 ![Image of Yaktocat](https://image.lceda.cn/avatars/2021/8/Ws93ELldBIXITlaCq0kmIJoMG4y8Th6FQbyloXKx.png)
 
-This Demo uses the Tuya smart cloud platform, Tuya smart APP and IoTOS Embedded MCU SDK to realize a salty spoon.
+In this demo, we will show you how to use the MCU SDK to develop a spoon that can enhance salty flavor and connect this spoon to the Tuya IoT Cloud with the Tuya Smart app.
 
-The implemented features include:
+Features:
 
-+ voltage detection
-+ frequency control
++ Battery level detection
 
-## Quick start  
++ Frequency control
 
-### Compile & Burn
-+ Download  Tuya IoTOS Embeded Code
-+ Execute the test.uvprojx file
-+ Click Compile in the software and complete the download
+## Get started
 
+### Compile and flash
++ Download Tuya IoTOS Embedded Code.
 
++ Run `test.uvprojx`.
 
-## Related Documents
++ Click **Compile** on the software to download the code.
 
-  Tuya Demo Center: https://developer.tuya.com/demo
+### File introduction
 
+```
+├── SYSTEM
+│   ├── main.c
+│   └── main.h
+└── SDK
+    ├── mcu_api.c
+    ├── mcu_api.h
+    ├── protocol.c
+    ├── protocol.h
+    ├── system.c
+    ├── system.h
+    └── bluetooth.h
 
+```
 
-## Technical Support
+### Demo entry
 
-  You can get support for Tuya by using the following methods:
+Entry file: `main.c`
 
-- Developer Center: https://developer.tuya.com
-- Help Center: https://support.tuya.com/help
-- Technical Support Work Order Center: [https://service.console.tuya.com](https://service.console.tuya.com/) 
+Main function: `main()`
+
++ Initialize and configure I/Os, USART, and timer of the MCU. All events are polled and determined in `while(1)`.
+
+### Data point (DP)
+
++ Process DP data: `mcu_dp_value_update()`
+
+    | Function | unsigned char mcu_dp_value_update(unsigned char dpid,unsigned long value) |
+    | ------ | ------------------------------------------------------------ |
+    | dpid | DP ID |
+    | value | DP data |
+    | Return | `SUCCESS`: DP data reporting succeeded. `ERROR`: DP data reporting failed. |
+
+### Pin configuration
+
+| ADC | UASRT1 | Frequency |
+| :--: | :------: | :-------: |
+| P5.5 | P3.3 TXD | P5.4 |
+|      | P3.2 RXD |           |
+
+## Reference
+
+[Tuya Project Hub](https://developer.tuya.com/demo)
+
+## Technical support
+
+You can get support from Tuya with the following methods:
+
+- [Tuya IoT Developer Platform](https://developer.tuya.com/en/)
+- [Help Center](https://support.tuya.com/en/help)
+- [Service & Support](https://service.console.tuya.com)[](https://service.console.tuya.com/)
