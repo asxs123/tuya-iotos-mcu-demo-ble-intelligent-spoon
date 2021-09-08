@@ -1,0 +1,745 @@
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MCU_API
+OBJECT MODULE PLACED IN .\Objects\mcu_api.obj
+COMPILER INVOKED BY: F:\Keil_v5\C51\BIN\C51.EXE mcu_sdk\mcu_api.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(.\mcu_sdk;.\syst
+                    -em) DEBUG OBJECTEXTEND PRINT(.\Listings\mcu_api.lst) TABS(2) OBJECT(.\Objects\mcu_api.obj)
+
+line level    source
+
+   1          /****************************************Copyright (c)*************************
+   2          **                               Copyright (C) 2014-2020, Tuya Inc., All Rights Reserved
+   3          **
+   4          **                                 http://www.tuya.com
+   5          **
+   6          **--------------Revision record---------------------------------------------------
+   7          ** version: v1.0
+   8          ** date : may 3, 2017 
+   9          description: Initial version
+  10          **
+  11          
+  12          **version::v2.0
+  13          ** date: March 23, 2020
+  14          ** description: 
+  15          1. Added module unbinding interface support, command code 0x09.
+  16          2.Add rf RF test interface support, command code 0x0e.
+  17          3.Add record-based data reporting interface support,command code 0xe0.
+  18          4. Added access to real-time time API support,command code 0xe1.
+  19          5. Added support for modifying sleep mode state bluetooth broadcast interval,command code 0xe2.
+  20          6. Added support for turning off system clock,command code 0xe4.
+  21          7. Increase low power consumption to enable support,commadn code 0xe5.
+  22          8. Add dynamic password authentication interface support,command code 0xe6.
+  23          9. Added support for disconnecting Bluetooth connection,command code 0xe7.
+  24          10. Added support for querying MCU version number,command code 0xe8.
+  25          11. Added support for MCU to actively send version Numbers,command code 0xe9.
+  26          12. Add OTA upgrade request support,command code 0xea.
+  27          13. Add OTA update file information support,command 0xeb.
+  28          14. Add OTA upgrade file migration request support,command code 0xec.
+  29          15. Add OTA upgrade data support,command code 0xed.
+  30          16. Add OTA upgrade end support,command code 0xee.
+  31          17. Added support for MCU to acquire module version information,commadn code 0xa0.
+  32          18. Added support for resuming factory Settings notifications,command code 0xa1.
+  33          19. Add MCU OTA demo code.
+  34          20. Optimized bt_uart_service.
+  35          **
+  36          **-----------------------------------------------------------------------------
+  37          ******************************************************************************/
+  38          
+  39          
+  40          #define MCU_API_GLOBAL
+  41          
+  42          #include "bluetooth.h"
+  43          
+  44          /*****************************************************************************
+  45          Function name: hex_to_bcd
+  46          Function description: hex to bcd
+  47          Input parameters: 
+  48            Value_H: high byte / Value_L: low byte
+  49          Return value:
+  50            bcd_value:Data after conversion is completed.
+  51          *****************************************************************************/
+  52          unsigned char hex_to_bcd(unsigned char Value_H,unsigned char Value_L)
+  53          {
+  54   1        unsigned char bcd_value;
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 2   
+
+  55   1        
+  56   1        if((Value_H >= '0') && (Value_H <= '9'))
+  57   1          Value_H -= '0';
+  58   1        else if((Value_H >= 'A') && (Value_H <= 'F'))
+  59   1          Value_H = Value_H - 'A' + 10;
+  60   1        else if((Value_H >= 'a') && (Value_H <= 'f'))
+  61   1          Value_H = Value_H - 'a' + 10;
+  62   1         
+  63   1        bcd_value = Value_H & 0x0f;
+  64   1        
+  65   1        bcd_value <<= 4;
+  66   1        if((Value_L >= '0') && (Value_L <= '9'))
+  67   1          Value_L -= '0';
+  68   1        else if((Value_L >= 'A') && (Value_L <= 'F'))
+  69   1          Value_L = Value_L - 'a' + 10;
+  70   1        else if((Value_L >= 'a') && (Value_L <= 'f'))
+  71   1          Value_L = Value_L - 'a' + 10;
+  72   1        
+  73   1        bcd_value |= Value_L & 0x0f;
+  74   1      
+  75   1        return bcd_value;
+  76   1      }
+  77          /*****************************************************************************
+  78          Function name: my_strlen
+  79          Function description: find the length of the string
+  80          Input parameter:
+  81            src: source address
+  82          Return parameter: 
+  83            len: data length
+  84          
+  85          *****************************************************************************/
+  86          unsigned long my_strlen(unsigned char *str)  
+  87          {
+  88   1        unsigned long len = 0;
+  89   1        if(str == NULL)
+  90   1        { 
+  91   2          return 0;
+  92   2        }
+  93   1        
+  94   1        for(len = 0; *str ++ != '\0'; )
+  95   1        {
+  96   2          len ++;
+  97   2        }
+  98   1        
+  99   1        return len;
+ 100   1      }
+ 101          /*****************************************************************************
+ 102          Function name: my_memset
+ 103          Function description: set the first count bytes of the memory area referred to by src to the character ch
+ 104          Input parameter: src: source address
+ 105                 ch: setting character
+ 106                     count:Operation data length
+ 107          Return parameters :
+ 108            src:source address after data processing
+ 109          *****************************************************************************/
+ 110          void *my_memset(void *src,unsigned char ch,unsigned short count)
+ 111          {
+ 112   1        unsigned char *tmp = (unsigned char *)src;
+ 113   1        
+ 114   1        if(src == NULL)
+ 115   1        {
+ 116   2          return NULL;
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 3   
+
+ 117   2        }
+ 118   1        
+ 119   1        while(count --)
+ 120   1        {
+ 121   2          *tmp ++ = ch;
+ 122   2        }
+ 123   1        
+ 124   1        return src;
+ 125   1      }
+ 126          /*****************************************************************************
+ 127          Function name: my_memcpy
+ 128          Function description: memory copy
+ 129          Input parameter: dest: destination address
+ 130                     src:Source address
+ 131                     count:Number of data copies
+ 132           Return parameters :
+ 133            src:Source address after data processing
+ 134          *****************************************************************************/
+ 135          void *my_memcpy(void *dest, const void *src, unsigned short count)  
+ 136          {  
+ 137   1        unsigned char *pdest = (unsigned char *)dest;  
+ 138   1        const unsigned char *psrc  = (const unsigned char *)src;  
+ 139   1        unsigned short i;
+ 140   1        
+ 141   1        if(dest == NULL || src == NULL)
+ 142   1        { 
+ 143   2          return NULL;
+ 144   2        }
+ 145   1        
+ 146   1        if((pdest <= psrc) || (pdest > psrc + count))
+ 147   1        {  
+ 148   2          for(i = 0; i < count; i ++)
+ 149   2          {  
+ 150   3            pdest[i] = psrc[i];  
+ 151   3          }  
+ 152   2        }
+ 153   1        else
+ 154   1        {
+ 155   2          for(i = count; i > 0; i --)
+ 156   2          {  
+ 157   3            pdest[i - 1] = psrc[i - 1];  
+ 158   3          }  
+ 159   2        }  
+ 160   1        
+ 161   1        return dest;  
+ 162   1      }
+ 163          /*****************************************************************************
+ 164          Function name: my_memcmp
+ 165          Function description: memory comparison
+ 166          Input parameter: buffer1: memory 1
+ 167                     buffer2:memory 2
+ 168                      count:Comparative length
+ 169          Return parameters :0:buffer1=buffer2; -1:buffer1<buffer2; 1:buffer1>buffer2
+ 170          *****************************************************************************/
+ 171          int my_memcmp(const void *buffer1,const void *buffer2,int count)
+ 172          {
+ 173   1         if (!count)
+ 174   1            return(0);
+ 175   1         while ( --count && *(char *)buffer1 == *(char *)buffer2)
+ 176   1         {
+ 177   2            buffer1 = (char *)buffer1 + 1;
+ 178   2              buffer2 = (char *)buffer2 + 1;
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 4   
+
+ 179   2         }
+ 180   1         return( *((unsigned char *)buffer1) - *((unsigned char *)buffer2) );
+ 181   1      }
+ 182          /*****************************************************************************
+ 183          Function name: my_atoll
+ 184          Function description: string to integer
+ 185          Input parameter: P string
+ 186          Return parameter: integer
+ 187          *****************************************************************************/
+ 188           
+ 189          #include <ctype.h>
+ 190           long my_atoll(const char *p)
+ 191          {
+ 192   1          long n;
+ 193   1        int c, neg = 0;
+ 194   1        unsigned char   *up = (unsigned char *)p;
+ 195   1      
+ 196   1        if (!isdigit(c = *up)) {
+ 197   2          while (isspace(c))
+ 198   2            c = *++up;
+ 199   2          switch (c) {
+ 200   3          case '-':
+ 201   3            neg++;
+ 202   3            /* FALLTHROUGH */
+ 203   3          case '+':
+ 204   3            c = *++up;
+ 205   3          }
+ 206   2          if (!isdigit(c))
+ 207   2            return (0);
+ 208   2        }
+ 209   1      
+ 210   1        for (n = '0' - c; isdigit(c = *++up); ) {
+ 211   2          n *= 10; /* two steps to avoid unnecessary overflow */
+ 212   2          n += '0' - c; /* accum neg to avoid surprises at MAX */
+ 213   2        }
+ 214   1      
+ 215   1        return (neg ? n : -n);
+ 216   1      }
+ 217          
+ 218          
+ 219          /*****************************************************************************
+ 220          Function name: int_to_byte
+ 221          Function description: split the int type into four bytes
+ 222          Input parameter: 
+ 223            number:Number to be processed
+ 224            value:4 bytes of data after processing
+ 225          Return parameter: none
+ 226          ****************************************************************************/
+ 227          void int_to_byte(unsigned long number,unsigned char value[4])
+ 228          {
+ 229   1        value[0] = number >> 24;
+ 230   1        value[1] = number >> 16;
+ 231   1        value[2] = number >> 8;
+ 232   1        value[3] = number & 0xff;
+ 233   1      }
+ 234          /*****************************************************************************
+ 235          Function name: byte_to_int
+ 236          Function description: merge 4 bytes into 1 32bit variable
+ 237          Input parameters: value:4 byte array
+ 238          Return parameter: 
+ 239            number:32bit variables after merging
+ 240          ****************************************************************************/
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 5   
+
+ 241          unsigned long byte_to_int(const unsigned char value[4])
+ 242          {
+ 243   1        unsigned long nubmer = 0;
+ 244   1      
+ 245   1        nubmer = (unsigned long)value[0];
+ 246   1        nubmer <<= 8;
+ 247   1        nubmer |= (unsigned long)value[1];
+ 248   1        nubmer <<= 8;
+ 249   1        nubmer |= (unsigned long)value[2];
+ 250   1        nubmer <<= 8;
+ 251   1        nubmer |= (unsigned long)value[3];
+ 252   1        
+ 253   1        return nubmer;
+ 254   1      }
+ 255          #ifndef BT_CONTROL_SELF_MODE
+ 256          /*****************************************************************************
+ 257          Function name: mcu_get_reset_bt_flag
+ 258          Function description: MCU acquires reset bt success flag
+ 259          Input parameters: none
+ 260          Return parameter: RESET_BT_ERROR:failed/RESET_BT_SUCCESS:success
+ 261          Instructions for use: 1:MCU call this function after calling mcu_reset_bt () actively to get the reset sta
+             -te
+ 262                 2: if it is in module self-processing mode, MCU does not need to call this function
+ 263          *****************************************************************************/
+ 264          unsigned char mcu_get_reset_bt_flag(void)
+ 265          {
+ 266   1        return reset_bt_flag;
+ 267   1      }
+ 268          /*****************************************************************************
+ 269          Function name: mcu_reset_bt
+ 270          Function description: MCU actively resets bt working mode
+ 271          Input parameters: none
+ 272          Return parameter: none
+ 273          Instructions for use: 1:MCU is called actively, and the mcu_get_reset_bt_flag () function is used to obtai
+             -n whether the reset bt is successful or not.
+ 274                 2: if it is in module self-processing mode, MCU does not need to call this function
+ 275          *****************************************************************************/
+ 276          void mcu_reset_bt(void)
+ 277          {
+ 278   1        reset_bt_flag = RESET_BT_ERROR;
+ 279   1        
+ 280   1        bt_uart_write_frame(BT_RESET_CMD, 0);
+ 281   1      }
+ 282          /*****************************************************************************
+ 283          Function name: mcu_get_bt_work_state
+ 284          Function description: MCU actively acquires the current bt working status
+ 285          Input parameters: none
+ 286          Return parameter: BT_WORK_SATE_E:
+ 287                      BT_UN_BIND:Unbound state
+ 288                      BT_UNCONNECT:Bound but not connected
+ 289                      BT_CONNECTED:Bound and connected
+ 290          Instructions for use: none
+ 291          *****************************************************************************/
+ 292          unsigned char mcu_get_bt_work_state(void)
+ 293          {
+ 294   1        return bt_work_state;
+ 295   1      }
+ 296          #endif
+ 297          
+ 298          /*****************************************************************************
+ 299          Function name: mcu_dp_raw_update
+ 300          Function description: raw dp data upload
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 6   
+
+ 301          Return parameter: dpid:id
+ 302                     value:dp date
+ 303                     len:length
+ 304          Return parameter: none
+ 305          *****************************************************************************/
+ 306          unsigned char mcu_dp_raw_update(unsigned char dpid,const unsigned char value[],unsigned short len)
+ 307          {
+ 308   1        unsigned short length = 0;
+ 309   1        
+ 310   1        if(stop_update_flag == ENABLE)
+ 311   1          return SUCCESS;
+ 312   1        //
+ 313   1        length = set_bt_uart_byte(length,dpid);
+ 314   1        length = set_bt_uart_byte(length,DP_TYPE_RAW);
+ 315   1        //
+ 316   1        length = set_bt_uart_byte(length,len / 0x100);
+ 317   1        length = set_bt_uart_byte(length,len % 0x100);
+ 318   1        //
+ 319   1        length = set_bt_uart_buffer(length,(unsigned char *)value,len);
+ 320   1        
+ 321   1        bt_uart_write_frame(STATE_UPLOAD_CMD,length);
+ 322   1        
+ 323   1        return SUCCESS;
+ 324   1      }
+ 325          /*****************************************************************************
+ 326          Function name: mcu_dp_bool_update
+ 327          Function description: Bool dp data upload
+ 328          Input parameter: dpid:id number
+ 329                     value:
+ 330          Return parameter: none
+ 331          *****************************************************************************/
+ 332          unsigned char mcu_dp_bool_update(unsigned char dpid,unsigned char value)
+ 333          {
+ 334   1        unsigned short length = 0;
+ 335   1        
+ 336   1        if(stop_update_flag == ENABLE)
+ 337   1          return SUCCESS;
+ 338   1        
+ 339   1        length = set_bt_uart_byte(length,dpid);
+ 340   1        length = set_bt_uart_byte(length,DP_TYPE_BOOL);
+ 341   1        //
+ 342   1        length = set_bt_uart_byte(length,0);
+ 343   1        length = set_bt_uart_byte(length,1);
+ 344   1        //
+ 345   1        if(value == FALSE)
+ 346   1        {
+ 347   2          length = set_bt_uart_byte(length,FALSE);
+ 348   2        }
+ 349   1        else
+ 350   1        {
+ 351   2          length = set_bt_uart_byte(length,1);
+ 352   2        }
+ 353   1        
+ 354   1        bt_uart_write_frame(STATE_UPLOAD_CMD,length);
+ 355   1        
+ 356   1        return SUCCESS;
+ 357   1      }
+ 358          /*****************************************************************************
+ 359          Function name: mcu_dp_value_update
+ 360          Function description: value dp data upload
+ 361          Input parameter: dpid:id number
+ 362                     value:
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 7   
+
+ 363          Return parameter: none
+ 364          *****************************************************************************/
+ 365          unsigned char mcu_dp_value_update(unsigned char dpid,unsigned long value)
+ 366          {
+ 367   1        unsigned short length = 0;
+ 368   1        
+ 369   1        if(stop_update_flag == ENABLE)
+ 370   1          return SUCCESS;
+ 371   1        
+ 372   1        length = set_bt_uart_byte(length,dpid);
+ 373   1        length = set_bt_uart_byte(length,DP_TYPE_VALUE);
+ 374   1        //
+ 375   1        length = set_bt_uart_byte(length,0);
+ 376   1        length = set_bt_uart_byte(length,4);
+ 377   1        //
+ 378   1        length = set_bt_uart_byte(length,value >> 24);
+ 379   1        length = set_bt_uart_byte(length,value >> 16);
+ 380   1        length = set_bt_uart_byte(length,value >> 8);
+ 381   1        length = set_bt_uart_byte(length,value & 0xff);
+ 382   1        
+ 383   1        bt_uart_write_frame(STATE_UPLOAD_CMD,length);
+ 384   1        
+ 385   1        return SUCCESS;
+ 386   1      }
+ 387          /*****************************************************************************
+ 388          Function name: mcu_dp_string_update
+ 389          Function description: string dp data upload
+ 390          Input parameter: dpid:id number
+ 391                     value:current DP value pointer
+ 392                     len:data length
+ 393          Return parameter: none
+ 394          *****************************************************************************/
+ 395          unsigned char mcu_dp_string_update(unsigned char dpid,const unsigned char value[],unsigned short len)
+ 396          {
+ 397   1        unsigned short length = 0;
+ 398   1        
+ 399   1        if(stop_update_flag == ENABLE)
+ 400   1          return SUCCESS;
+ 401   1        //
+ 402   1        length = set_bt_uart_byte(length,dpid);
+ 403   1        length = set_bt_uart_byte(length,DP_TYPE_STRING);
+ 404   1        //
+ 405   1        length = set_bt_uart_byte(length,len / 0x100);
+ 406   1        length = set_bt_uart_byte(length,len % 0x100);
+ 407   1        //
+ 408   1        length = set_bt_uart_buffer(length,(unsigned char *)value,len);
+ 409   1        
+ 410   1        bt_uart_write_frame(STATE_UPLOAD_CMD,length);
+ 411   1        
+ 412   1        return SUCCESS;
+ 413   1      }
+ 414          /*****************************************************************************
+ 415          Function name: mcu_dp_enum_update
+ 416          Function description: enum dp data upload
+ 417          Input parameter: dpid:id number
+ 418                     value:
+ 419          Return parameter: none
+ 420          *****************************************************************************/
+ 421          unsigned char mcu_dp_enum_update(unsigned char dpid,unsigned char value)
+ 422          {
+ 423   1        unsigned short length = 0;
+ 424   1        
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 8   
+
+ 425   1        if(stop_update_flag == ENABLE)
+ 426   1          return SUCCESS;
+ 427   1        
+ 428   1        length = set_bt_uart_byte(length,dpid);
+ 429   1        length = set_bt_uart_byte(length,DP_TYPE_ENUM);
+ 430   1        //
+ 431   1        length = set_bt_uart_byte(length,0);
+ 432   1        length = set_bt_uart_byte(length,1);
+ 433   1        //
+ 434   1        length = set_bt_uart_byte(length,value);
+ 435   1        
+ 436   1        bt_uart_write_frame(STATE_UPLOAD_CMD,length);
+ 437   1        
+ 438   1        return SUCCESS;
+ 439   1      }
+ 440          /*****************************************************************************
+ 441          Function name: mcu_dp_fault_update
+ 442          Function description: bitmap dp data upload
+ 443          Input parameter: dpid:id number
+ 444                     value:current dp value
+ 445          Return parameter: none
+ 446          *****************************************************************************/
+ 447          unsigned char mcu_dp_fault_update(unsigned char dpid,unsigned long value)
+ 448          {
+ 449   1        unsigned short length = 0;
+ 450   1         
+ 451   1        if(stop_update_flag == ENABLE)
+ 452   1          return SUCCESS;
+ 453   1        
+ 454   1        length = set_bt_uart_byte(length,dpid);
+ 455   1        length = set_bt_uart_byte(length,DP_TYPE_BITMAP);
+ 456   1        //
+ 457   1        length = set_bt_uart_byte(length,0);
+ 458   1        
+ 459   1        if((value | 0xff) == 0xff)
+ 460   1        {
+ 461   2          length = set_bt_uart_byte(length,1);
+ 462   2          length = set_bt_uart_byte(length,value);
+ 463   2        }
+ 464   1        else if((value | 0xffff) == 0xffff)
+ 465   1        {
+ 466   2          length = set_bt_uart_byte(length,2);
+ 467   2          length = set_bt_uart_byte(length,value >> 8);
+ 468   2          length = set_bt_uart_byte(length,value & 0xff);
+ 469   2        }
+ 470   1        else
+ 471   1        {
+ 472   2          length = set_bt_uart_byte(length,4);
+ 473   2          length = set_bt_uart_byte(length,value >> 24);
+ 474   2          length = set_bt_uart_byte(length,value >> 16);
+ 475   2          length = set_bt_uart_byte(length,value >> 8);
+ 476   2          length = set_bt_uart_byte(length,value & 0xff);
+ 477   2        }    
+ 478   1        
+ 479   1        bt_uart_write_frame(STATE_UPLOAD_CMD,length);
+ 480   1      
+ 481   1        return SUCCESS;
+ 482   1      }
+ 483          /*****************************************************************************
+ 484          Function name: mcu_get_dp_download_bool
+ 485          Function description: mcu acquires the DP value issued by Bool
+ 486          Input parameter: value:dp data buffer address
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 9   
+
+ 487                     length:dp data length
+ 488          Return parameter: current DP value of bool
+ 489          *****************************************************************************/
+ 490          unsigned char mcu_get_dp_download_bool(const unsigned char value[],unsigned short len)
+ 491          {
+ 492   1        return(value[0]);
+ 493   1      }
+*** WARNING C280 IN LINE 490 OF mcu_sdk\mcu_api.c: 'len': unreferenced local variable
+ 494          /*****************************************************************************
+ 495          Function name: mcu_get_dp_download_enum
+ 496          Function description: mcu acquires the DP value issued by enum
+ 497          Input parameter: value:dp data buffer address
+ 498                     length:dp data length
+ 499          Return parameter: current DP value of eunm
+ 500          *****************************************************************************/
+ 501          
+ 502          unsigned char mcu_get_dp_download_enum(const unsigned char value[],unsigned short len)
+ 503          {
+ 504   1        return(value[0]);
+ 505   1      }
+*** WARNING C280 IN LINE 502 OF mcu_sdk\mcu_api.c: 'len': unreferenced local variable
+ 506          /*****************************************************************************
+ 507          Function name: mcu_get_dp_download_value
+ 508          Function description: mcu acquires the DP value issued by value
+ 509          Input parameter: value:dp data buffer address
+ 510                     length:dp data length
+ 511          Return parameter: current DP value
+ 512          *****************************************************************************/
+ 513          
+ 514          unsigned long mcu_get_dp_download_value(const unsigned char value[],unsigned short len)
+ 515          {
+ 516   1        return(byte_to_int(value));
+ 517   1      }
+*** WARNING C280 IN LINE 514 OF mcu_sdk\mcu_api.c: 'len': unreferenced local variable
+ 518          /*****************************************************************************
+ 519          Function name: uart_receive_input
+ 520          Function description: receiving data processing
+ 521          Input parameters: value: uart port receives byte data
+ 522          Return parameter: none
+ 523          Instructions for use: call this function in the MCU uart port receiving function and pass in the received 
+             -data as parameters
+ 524          *****************************************************************************/
+ 525          void uart_receive_input(unsigned char value)
+ 526          {
+ 527   1        if((queue_in > queue_out) && ((queue_in - queue_out) >= sizeof(bt_queue_buf)))
+ 528   1        {
+ 529   2        // the Data queue is full
+ 530   2        }
+ 531   1        else if((queue_in < queue_out) && ((queue_out  - queue_in) == 0))
+ 532   1        {
+ 533   2          //Data queue is full
+ 534   2        }
+ 535   1        else
+ 536   1        {
+ 537   2          //Queue is not full
+ 538   2          if(queue_in >= (unsigned char *)(bt_queue_buf + sizeof(bt_queue_buf)))
+ 539   2          {
+ 540   3            queue_in = (unsigned char *)(bt_queue_buf);
+ 541   3          }
+ 542   2          
+ 543   2          *queue_in ++ = value;
+ 544   2        }
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 10  
+
+ 545   1      }
+ 546          /*
+ 547           *@brief Function for receive uart data.
+ 548           *@param
+ 549           *
+ 550           *@note
+ 551           *
+ 552           * */
+ 553          
+ 554          typedef enum {
+ 555              MCU_UART_REV_STATE_FOUND_NULL,
+ 556              MCU_UART_REV_STATE_FOUND_HEAD,
+ 557              MCU_UART_REV_STATE_FOUND_CMD,
+ 558              MCU_UART_REV_STATE_FOUND_LEN_H,
+ 559              MCU_UART_REV_STATE_FOUND_LEN_L,
+ 560              MCU_UART_REV_STATE_FOUND_DATA,
+ 561              MCU_UART_REV_STATE_UNKOWN,
+ 562          } mcu_uart_rev_state_type_t;
+ 563          
+ 564          #define UART_RX_BUFFER_MAX   (PROTOCOL_HEAD + BT_UART_RECV_BUF_LMT)
+ 565          #define UART_RX_DATA_LEN_MAX (PROTOCOL_HEAD + BT_UART_RECV_BUF_LMT)
+ 566          static volatile mcu_uart_rev_state_type_t current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_NULL;
+ 567          static uint8_t bt_uart_rx_buf_temp[3] = {0};
+ 568          static uint16_t uart_data_len =  0;
+ 569          static volatile uint16_t UART_RX_Count = 0;
+ 570          
+ 571          
+ 572          static uint8_t mcu_common_uart_data_unpack(uint8_t dataa)
+ 573          {
+ 574   1          uint8_t ret = FALSE;
+ 575   1      
+ 576   1          bt_uart_rx_buf_temp[0] = bt_uart_rx_buf_temp[1];
+ 577   1          bt_uart_rx_buf_temp[1] = bt_uart_rx_buf_temp[2];
+ 578   1          bt_uart_rx_buf_temp[2] = dataa;
+ 579   1      
+ 580   1          if((bt_uart_rx_buf_temp[0]==0x55)&&(bt_uart_rx_buf_temp[1]==0xAA)&&(bt_uart_rx_buf_temp[2]==0x00))
+ 581   1          {
+ 582   2              my_memset(bt_uart_rx_buf,0,sizeof(bt_uart_rx_buf));
+ 583   2              my_memcpy(bt_uart_rx_buf,bt_uart_rx_buf_temp,3);
+ 584   2              my_memset(bt_uart_rx_buf_temp,0,3);
+ 585   2              UART_RX_Count = 3;
+ 586   2              current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_HEAD;
+ 587   2              uart_data_len = 0;
+ 588   2              return ret;
+ 589   2          }
+ 590   1          switch(current_uart_rev_state_type)
+ 591   1          {
+ 592   2          case MCU_UART_REV_STATE_FOUND_NULL:
+ 593   2              break;
+ 594   2          case MCU_UART_REV_STATE_FOUND_HEAD:
+ 595   2              bt_uart_rx_buf[UART_RX_Count++] = dataa;
+ 596   2              current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_CMD;
+ 597   2              break;
+ 598   2          case MCU_UART_REV_STATE_FOUND_CMD:
+ 599   2              bt_uart_rx_buf[UART_RX_Count++] = dataa;
+ 600   2              current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_LEN_H;
+ 601   2              break;
+ 602   2          case MCU_UART_REV_STATE_FOUND_LEN_H:
+ 603   2              bt_uart_rx_buf[UART_RX_Count++] = dataa;
+ 604   2              uart_data_len = (bt_uart_rx_buf[UART_RX_Count-2]<<8)|bt_uart_rx_buf[UART_RX_Count-1];
+ 605   2              if(uart_data_len>UART_RX_DATA_LEN_MAX)
+ 606   2              {
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 11  
+
+ 607   3                  my_memset(bt_uart_rx_buf_temp,0,3);
+ 608   3                  my_memset(bt_uart_rx_buf,0,sizeof(bt_uart_rx_buf));
+ 609   3                  UART_RX_Count = 0;
+ 610   3                  current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_NULL;
+ 611   3                  uart_data_len = 0;
+ 612   3              }
+ 613   2              else if(uart_data_len>0)
+ 614   2              {
+ 615   3                  current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_LEN_L;
+ 616   3              }
+ 617   2              else
+ 618   2              {
+ 619   3                  current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_DATA;
+ 620   3              }
+ 621   2              break;
+ 622   2          case MCU_UART_REV_STATE_FOUND_LEN_L:
+ 623   2              bt_uart_rx_buf[UART_RX_Count++] = dataa;   //DATA
+ 624   2              uart_data_len--;
+ 625   2              if(uart_data_len==0)
+ 626   2              {
+ 627   3                  current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_DATA;
+ 628   3              }
+ 629   2              break;
+ 630   2          case MCU_UART_REV_STATE_FOUND_DATA:
+ 631   2              bt_uart_rx_buf[UART_RX_Count++] = dataa;  //sum data
+ 632   2              ret = TRUE;
+ 633   2              break;
+ 634   2          default:
+ 635   2              my_memset(bt_uart_rx_buf_temp,0,3);
+ 636   2              my_memset(bt_uart_rx_buf,0,sizeof(bt_uart_rx_buf));
+ 637   2              UART_RX_Count = 0;
+ 638   2              current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_NULL;
+ 639   2              uart_data_len = 0;
+ 640   2              break;
+ 641   2          };
+ 642   1      
+ 643   1          return ret;
+ 644   1      
+ 645   1      }
+ 646          
+ 647          /*****************************************************************************
+ 648          Function name: bt_uart_service
+ 649          Function description: bt serial port processing service
+ 650          Input parameters: none
+ 651          Return parameter: none
+ 652          Instructions: call this function in the while loop of the MCU main function
+ 653          *****************************************************************************/
+ 654          void bt_uart_service(void)
+ 655          {
+ 656   1        static unsigned short rx_in = 0;
+ 657   1        unsigned short offset = 0;
+ 658   1        unsigned short rx_value_len = 0;             //Data frame length
+ 659   1        
+ 660   1        if((rx_in < sizeof(bt_uart_rx_buf)) && get_queue_total_data() > 0)
+ 661   1        {
+ 662   2          if(mcu_common_uart_data_unpack(Queue_Read_Byte()))
+ 663   2          {
+ 664   3          data_handle(0);
+ 665   3          rx_value_len = bt_uart_rx_buf[LENGTH_HIGH] * 0x100 + bt_uart_rx_buf[LENGTH_LOW] + PROTOCOL_HEAD;
+ 666   3          my_memset(bt_uart_rx_buf_temp,0,3);
+ 667   3              my_memset(bt_uart_rx_buf,0,sizeof(bt_uart_rx_buf));
+ 668   3              UART_RX_Count = 0;
+C51 COMPILER V9.60.0.0   MCU_API                                                           08/31/2021 12:55:22 PAGE 12  
+
+ 669   3              current_uart_rev_state_type = MCU_UART_REV_STATE_FOUND_NULL;
+ 670   3              uart_data_len = 0;
+ 671   3          }
+ 672   2        }
+ 673   1      
+ 674   1      }
+ 675          /*****************************************************************************
+ 676          Function name: bt_protocol_init
+ 677          Function description: protocol serial port initialization function
+ 678          Input parameters: none
+ 679          Return parameter: none
+ 680          Instructions for use: this function must be called in the MCU initialization code
+ 681          *****************************************************************************/
+ 682          void bt_protocol_init(void)
+ 683          {
+ 684   1        queue_in = (unsigned char *)bt_queue_buf;
+ 685   1        queue_out = (unsigned char *)bt_queue_buf;
+ 686   1        //
+ 687   1      #ifndef BT_CONTROL_SELF_MODE
+ 688   1        bt_work_state = BT_SATE_UNKNOW;
+ 689   1      #endif
+ 690   1        //mcu_ota_init();
+ 691   1      
+ 692   1      }
+ 693          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3323    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     10     101
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  3 WARNING(S),  0 ERROR(S)

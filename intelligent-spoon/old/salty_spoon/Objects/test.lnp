@@ -1,0 +1,6 @@
+".\Objects\main.obj",
+".\Objects\mcu_api.obj",
+".\Objects\protocol.obj",
+".\Objects\system.obj" 
+TO ".\Objects\test" 
+PRINT(".\Listings\test.m51") RAMSIZE(256) 

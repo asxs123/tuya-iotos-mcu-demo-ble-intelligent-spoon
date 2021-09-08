@@ -1,0 +1,108 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: μVision V5.27.1.0
+Copyright (C) 2019 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: asc 微软中国, 微软中国, LIC=UJ5II-TXTSU-NYWV5-G62ZP-GR97G-M0X79
+ 
+Tool Versions:
+Toolchain:       PK51 Prof. Developers Kit  Version: 9.60.0.0
+Toolchain Path:  F:\Keil_v5\C51\BIN
+C Compiler:      C51.exe V9.60.0.0
+Assembler:       A51.exe V8.2.7.0
+Linker/Locator:  BL51.exe V6.22.2.0
+Library Manager: LIB51.exe V4.30.1.0
+Hex Converter:   OH51.exe V2.7.0.0
+CPU DLL:         S8051.DLL V3.122.0.0
+Dialog DLL:      DP51.DLL V2.67.0.0
+Target DLL:      STCMON51.DLL V0, 1, 0, 13
+Dialog DLL:      TP51.DLL V2.60.0.0
+ 
+<h2>Project:</h2>
+D:\Users\l\Desktop\百味勺子\tuya-iotos-embeded-mcu-demo-ble-smart-salty-spoon-1.0.0\salty_spoon\test.uvproj
+Project File Date:  08/19/2021
+
+<h2>Output:</h2>
+Rebuild target 'Target 1'
+compiling main.c...
+compiling mcu_api.c...
+mcu_sdk\mcu_api.c(490): warning C280: 'len': unreferenced local variable
+mcu_sdk\mcu_api.c(502): warning C280: 'len': unreferenced local variable
+mcu_sdk\mcu_api.c(514): warning C280: 'len': unreferenced local variable
+compiling protocol.c...
+mcu_sdk\protocol.c(264): warning C280: 'rssi': unreferenced local variable
+mcu_sdk\protocol.c(293): warning C280: 'dpid': unreferenced local variable
+mcu_sdk\protocol.c(293): warning C280: 'dpType': unreferenced local variable
+mcu_sdk\protocol.c(293): warning C280: 'value': unreferenced local variable
+mcu_sdk\protocol.c(293): warning C280: 'len': unreferenced local variable
+mcu_sdk\protocol.c(316): warning C280: 'result': unreferenced local variable
+mcu_sdk\protocol.c(352): warning C280: 'bt_time': unreferenced local variable
+mcu_sdk\protocol.c(352): warning C280: 'time_zone_100': unreferenced local variable
+mcu_sdk\protocol.c(352): warning C280: 'time_stamp_ms': unreferenced local variable
+mcu_sdk\protocol.c(510): warning C291: not every exit path returns a value
+compiling system.c...
+mcu_sdk\system.c(312): warning C206: 'mcu_ota_init_disconnect': missing function-prototype
+mcu_sdk\system.c(270): warning C280: 'firmware_addr': unreferenced local variable
+mcu_sdk\system.c(271): warning C280: 'firm_length': unreferenced local variable
+mcu_sdk\system.c(272): warning C280: 'firm_update_flag': unreferenced local variable
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_HEX_TO_BCD?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_INT_TO_BYTE?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?MCU_GET_RESET_BT_FLAG?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?MCU_RESET_BT?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?MCU_GET_BT_WORK_STATE?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MCU_DP_RAW_UPDATE?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MCU_DP_BOOL_UPDATE?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MCU_DP_STRING_UPDATE?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MCU_DP_ENUM_UPDATE?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MCU_DP_FAULT_UPDATE?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MCU_GET_DP_DOWNLOAD_BOOL?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MCU_GET_DP_DOWNLOAD_ENUM?MCU_API
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?BT_UNBOUND_REQ?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?BT_RF_TEST_REQ?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_BT_SEND_RECORDABLE_DP_DATA?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_BT_SEND_TIME_SYNC_REQ?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_BT_MODIFY_ADV_INTERVAL_REQ?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_BT_CLOSE_TIMER_REQ?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_BT_ENABLE_LOWPOER_REQ?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_BT_SEND_ONE_TIME_PASSWORD_TOKEN?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?BT_DISCONNECT_REQ?PROTOCOL
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?BT_SEND_MCU_VER?PROTOCOL
+*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
+    SYMBOL:  MCU_OTA_INIT_DISCONNECT
+    MODULE:  .\Objects\system.obj (SYSTEM)
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  MCU_OTA_INIT_DISCONNECT
+    MODULE:  .\Objects\system.obj (SYSTEM)
+    ADDRESS: 00CEH
+Program Size: data=9.0 xdata=889 code=7947
+creating hex file from ".\Objects\test"...
+".\Objects\test" - 0 Error(s), 41 Warning(s).
+Build Time Elapsed:  00:00:02
+</pre>
+</body>
+</html>

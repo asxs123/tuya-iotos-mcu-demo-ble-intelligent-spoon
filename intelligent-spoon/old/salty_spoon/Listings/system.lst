@@ -1,0 +1,557 @@
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE SYSTEM
+OBJECT MODULE PLACED IN .\Objects\system.obj
+COMPILER INVOKED BY: F:\Keil_v5\C51\BIN\C51.EXE mcu_sdk\system.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(.\mcu_sdk;.\syste
+                    -m) DEBUG OBJECTEXTEND PRINT(.\Listings\system.lst) TABS(2) OBJECT(.\Objects\system.obj)
+
+line level    source
+
+   1          /****************************************Copyright (c)*************************
+   2          **                               Copyright (C) 2014-2020, Tuya Inc., All Rights Reserved
+   3          **
+   4          **                                 http://www.tuya.com
+   5          **
+   6          **--------------File Information-------------------------------------------------------
+   7          
+   8          **file name :system.c
+   9          **description:data processing function.
+  10          **instructions for use : The user does not need to care about the content of the file.
+  11          **
+  12          **
+  13          **--------------Revision record---------------------------------------------------
+  14          ** version: v1.0
+  15          ** date : may 3, 2017 
+  16          description: Initial version
+  17          **
+  18          
+  19          **version::v2.0
+  20          ** date: March 23, 2020
+  21          ** description: 
+  22          1. Added module unbinding interface support, command code 0x09.
+  23          2.Add rf RF test interface support, command code 0x0e.
+  24          3.Add record-based data reporting interface support,command code 0xe0.
+  25          4. Added access to real-time time API support,command code 0xe1.
+  26          5. Added support for modifying sleep mode state bluetooth broadcast interval,command code 0xe2.
+  27          6. Added support for turning off system clock,command code 0xe4.
+  28          7. Increase low power consumption to enable support,commadn code 0xe5.
+  29          8. Add dynamic password authentication interface support,command code 0xe6.
+  30          9. Added support for disconnecting Bluetooth connection,command code 0xe7.
+  31          10. Added support for querying MCU version number,command code 0xe8.
+  32          11. Added support for MCU to actively send version Numbers,command code 0xe9.
+  33          12. Add OTA upgrade request support,command code 0xea.
+  34          13. Add OTA update file information support,command 0xeb.
+  35          14. Add OTA upgrade file migration request support,command code 0xec.
+  36          15. Add OTA upgrade data support,command code 0xed.
+  37          16. Add OTA upgrade end support,command code 0xee.
+  38          17. Added support for MCU to acquire module version information,commadn code 0xa0.
+  39          18. Added support for resuming factory Settings notifications,command code 0xa1.
+  40          19. Add MCU OTA demo code.
+  41          20. Optimized bt_uart_service.
+  42          **
+  43          **-----------------------------------------------------------------------------
+  44          ******************************************************************************/
+  45          
+  46          #define SYSTEM_GLOBAL
+  47          
+  48          #include "bluetooth.h"
+  49          //
+  50          //
+  51          extern const DOWNLOAD_CMD_S download_cmd[];
+  52          
+  53          /*****************************************************************************
+  54          Function name: set_bt_uart_byte
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 2   
+
+  55          Function description: Writes 1 byte to BT_UART
+  56          Input parameters: dest: the actual address of the buffer area;
+  57                     byte:Write byte value
+  58          Return parameter: the total length after writing
+  59          *****************************************************************************/
+  60          unsigned short set_bt_uart_byte(unsigned short dest, unsigned char byte)
+  61          {
+  62   1        unsigned char *obj = (unsigned char *)bt_uart_tx_buf + DATA_START + dest;
+  63   1        
+  64   1        *obj = byte;
+  65   1        dest += 1;
+  66   1        
+  67   1        return dest;
+  68   1      }
+  69          /*****************************************************************************
+  70          Function name: set_bt_uart_buffer
+  71          Function description: Writes a buffer to BT_UART
+  72          Input parameter: dest: destination address
+  73                     src:source address
+  74                     len:Data length
+  75          Return parameter: none
+  76          *****************************************************************************/
+  77          unsigned short set_bt_uart_buffer(unsigned short dest, unsigned char *src, unsigned short len)
+  78          {
+  79   1        unsigned char *obj = (unsigned char *)bt_uart_tx_buf + DATA_START + dest;
+  80   1        
+  81   1        my_memcpy(obj,src,len);
+  82   1        
+  83   1        dest += len;
+  84   1        return dest;
+  85   1      }
+  86          /*****************************************************************************
+  87          Function name: bt_uart_write_data
+  88          Function description: Writes continuous data to BT UART
+  89          Input parameters: in:  buffer pointer
+  90                 len: data length
+  91          Return parameter: none
+  92          *****************************************************************************/
+  93          static void bt_uart_write_data(unsigned char *in, unsigned short len)
+  94          {
+  95   1        if((NULL == in) || (0 == len))
+  96   1        {
+  97   2          return;
+  98   2        }
+  99   1        while(len --)
+ 100   1        {
+ 101   2          uart_transmit_output(*in);
+ 102   2          in ++;
+ 103   2        }
+ 104   1      }
+ 105          /*****************************************************************************
+ 106          Function name:get_check_sum
+ 107          Function description: calculate checksum
+ 108          Input parameter: pack: data source pointer
+ 109                     pack_len:data length
+ 110          Return parameter: checksum
+ 111          *****************************************************************************/
+ 112          unsigned char get_check_sum(unsigned char *pack, unsigned short pack_len)
+ 113          {
+ 114   1        unsigned short i;
+ 115   1        unsigned char check_sum = 0;
+ 116   1        
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 3   
+
+ 117   1        for(i = 0; i < pack_len; i ++)
+ 118   1        {
+ 119   2          check_sum += *pack ++;
+ 120   2        }
+ 121   1        
+ 122   1        return check_sum;
+ 123   1      }
+ 124          /*****************************************************************************
+ 125          Function name: bt_uart_write_frame
+ 126          Function description: Send a frame of data to the bt uart port
+ 127          Input parameter: fr_type:frame type
+ 128                     len:data length
+ 129          Return parameter: none
+ 130          *****************************************************************************/
+ 131          void bt_uart_write_frame(unsigned char fr_type, unsigned short len)
+ 132          {
+ 133   1        unsigned char check_sum = 0;
+ 134   1        
+ 135   1        bt_uart_tx_buf[HEAD_FIRST] = 0x55;
+ 136   1        bt_uart_tx_buf[HEAD_SECOND] = 0xaa;
+ 137   1        bt_uart_tx_buf[PROTOCOL_VERSION] = 0x00;
+ 138   1        bt_uart_tx_buf[FRAME_TYPE] = fr_type;
+ 139   1        bt_uart_tx_buf[LENGTH_HIGH] = len >> 8;
+ 140   1        bt_uart_tx_buf[LENGTH_LOW] = len & 0xff;
+ 141   1        
+ 142   1        len += PROTOCOL_HEAD;
+ 143   1        check_sum = get_check_sum((unsigned char *)bt_uart_tx_buf, len - 1);
+ 144   1        bt_uart_tx_buf[len - 1] = check_sum;
+ 145   1        //
+ 146   1        bt_uart_write_data((unsigned char *)bt_uart_tx_buf, len);
+ 147   1      }
+ 148          /*****************************************************************************
+ 149          Function name: heat_beat_check
+ 150          Function description: Heartbeat packet detection
+ 151          Input parameters: none
+ 152          Return parameter: none
+ 153          *****************************************************************************/
+ 154          static void heat_beat_check(void)
+ 155          {
+ 156   1        unsigned char length = 0;
+ 157   1        static unsigned char mcu_reset_state = FALSE;
+ 158   1        
+ 159   1        if(FALSE == mcu_reset_state)
+ 160   1        {
+ 161   2          length = set_bt_uart_byte(length,FALSE);
+ 162   2          mcu_reset_state = TRUE;
+ 163   2        }
+ 164   1        else
+ 165   1        {
+ 166   2          length = set_bt_uart_byte(length,TRUE);
+ 167   2        }
+ 168   1        
+ 169   1        bt_uart_write_frame(HEAT_BEAT_CMD, length);
+ 170   1      }
+ 171          /*****************************************************************************
+ 172          Function name: product_info_update
+ 173          Function description: upload product information
+ 174          Input parameters: none
+ 175          Return parameter: none
+ 176          *****************************************************************************/
+ 177          static void product_info_update(void)
+ 178          {
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 4   
+
+ 179   1        unsigned char length = 0;
+ 180   1        
+ 181   1        length = set_bt_uart_buffer(length,(unsigned char *)PRODUCT_KEY,my_strlen((unsigned char *)PRODUCT_KEY))
+             -;
+ 182   1        length = set_bt_uart_buffer(length,(unsigned char *)MCU_VER,my_strlen((unsigned char *)MCU_VER));
+ 183   1        
+ 184   1        bt_uart_write_frame(PRODUCT_INFO_CMD, length);
+ 185   1      }
+ 186          /*****************************************************************************
+ 187          Function name: get_mcu_bt_mode
+ 188          Function description: query the working mode of mcu and bt
+ 189          Input parameters: none
+ 190          Return parameter: none
+ 191          *****************************************************************************/
+ 192          static void get_mcu_bt_mode(void)
+ 193          {
+ 194   1        unsigned char length = 0;
+ 195   1        
+ 196   1      #ifdef BT_CONTROL_SELF_MODE                                   //Module self-processing
+                length = set_bt_uart_byte(length, BT_STATE_KEY);
+                length = set_bt_uart_byte(length, BT_RESERT_KEY);
+              #else                                                           
+ 200   1        //No need to process data
+ 201   1      #endif
+ 202   1        
+ 203   1        bt_uart_write_frame(WORK_MODE_CMD, length);
+ 204   1      }
+ 205          /*****************************************************************************
+ 206          Function name: get_update_dpid_index
+ 207          Function description: Get the serial number of DPID in the array
+ 208          Input parameters: dpid:dpid
+ 209          Return parameter: index: DP serial number
+ 210          *****************************************************************************/
+ 211          static unsigned char get_dowmload_dpid_index(unsigned char dpid)
+ 212          {
+ 213   1        unsigned char index;
+ 214   1        unsigned char total = get_download_cmd_total();
+ 215   1        
+ 216   1        for(index = 0; index < total; index ++)
+ 217   1        {
+ 218   2          if(download_cmd[index].dp_id == dpid)
+ 219   2          {
+ 220   3            break;
+ 221   3          }
+ 222   2        }
+ 223   1        
+ 224   1        return index;
+ 225   1      }
+ 226          /*****************************************************************************
+ 227          Function name: data_point_handle
+ 228          Function description: send data processing
+ 229          Input parameter: 
+ 230            value: the pointer of the data source issued
+ 231          Return parameter: 
+ 232            ret: return data processing result
+ 233          *****************************************************************************/
+ 234          static unsigned char data_point_handle(const unsigned char value[])
+ 235          {
+ 236   1        unsigned char dp_id,index;
+ 237   1        unsigned char dp_type;
+ 238   1        unsigned char ret;
+ 239   1        unsigned short dp_len;
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 5   
+
+ 240   1        
+ 241   1        dp_id = value[0];
+ 242   1        dp_type = value[1];
+ 243   1        dp_len = value[2] * 0x100;
+ 244   1        dp_len += value[3];
+ 245   1        
+ 246   1        index = get_dowmload_dpid_index(dp_id);
+ 247   1      
+ 248   1        if(dp_type != download_cmd[index].dp_type)
+ 249   1        {
+ 250   2          //Error message
+ 251   2          return FALSE;
+ 252   2        }
+ 253   1        else
+ 254   1        {
+ 255   2          ret = dp_download_handle(dp_id,value + 4,dp_len);
+ 256   2        }
+ 257   1        
+ 258   1        return ret;
+ 259   1      }
+ 260          /*****************************************************************************
+ 261          Function name: data_handle
+ 262          Function description: data frame processing
+ 263          Input parameter: 
+ 264            Offset: Data start bit
+ 265          Return parameter: none
+ 266          *****************************************************************************/
+ 267          void data_handle(unsigned short offset)
+ 268          {
+ 269   1      #ifdef SUPPORT_MCU_FIRM_UPDATE
+ 270   1        unsigned char *firmware_addr;
+ 271   1        static unsigned long firm_length;                                             //MCU upgrades file length
+ 272   1        static unsigned char firm_update_flag;                                        //MCU upgrade flag
+ 273   1        unsigned long dp_len;
+ 274   1      #else
+                unsigned short dp_len;
+              #endif
+ 277   1        unsigned char length = 0;
+ 278   1        
+ 279   1        unsigned char ret;
+ 280   1        unsigned short i,total_len;
+ 281   1        unsigned char cmd_type = bt_uart_rx_buf[offset + FRAME_TYPE];
+ 282   1      
+ 283   1      
+ 284   1        signed char bt_rssi;
+ 285   1      
+ 286   1      #ifdef TUYA_BCI_UART_COMMON_SEND_TIME_SYNC_TYPE 
+ 287   1        bt_time_struct_data_t bt_time;
+ 288   1        unsigned short time_zone_100;
+ 289   1        char current_timems_string[14] = "000000000000";
+ 290   1         long time_stamp_ms;
+ 291   1      #endif
+ 292   1      
+ 293   1        switch(cmd_type)
+ 294   1        {
+ 295   2        case HEAT_BEAT_CMD:                                   //Heartbeat package
+ 296   2          heat_beat_check();
+ 297   2          break;
+ 298   2          
+ 299   2        case PRODUCT_INFO_CMD:                                //product information
+ 300   2          product_info_update();
+ 301   2          break;
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 6   
+
+ 302   2          
+ 303   2        case WORK_MODE_CMD:                                   //Query module working mode set by MCU
+ 304   2          get_mcu_bt_mode();
+ 305   2          break;
+ 306   2          
+ 307   2      #ifndef BT_CONTROL_SELF_MODE
+ 308   2        case BT_STATE_CMD:                                  //bt work state
+ 309   2          bt_work_state = bt_uart_rx_buf[offset + DATA_START];
+ 310   2          if(bt_work_state==0x01||bt_work_state==0x00)
+ 311   2          {
+ 312   3            mcu_ota_init_disconnect();
+*** WARNING C206 IN LINE 312 OF mcu_sdk\system.c: 'mcu_ota_init_disconnect': missing function-prototype
+ 313   3      
+ 314   3          }
+ 315   2          bt_uart_write_frame(BT_STATE_CMD,0);
+ 316   2          break;
+ 317   2      
+ 318   2        case BT_RESET_CMD:                                  //Reset BT (BT returns success)
+ 319   2          reset_bt_flag = RESET_BT_SUCCESS;
+ 320   2          break;
+ 321   2      #endif
+ 322   2          
+ 323   2        case DATA_QUERT_CMD:                                  //dp data handled
+ 324   2          total_len = bt_uart_rx_buf[offset + LENGTH_HIGH] * 0x100;
+ 325   2          total_len += bt_uart_rx_buf[offset + LENGTH_LOW];
+ 326   2          
+ 327   2          for(i = 0;i < total_len;)
+ 328   2          {
+ 329   3            dp_len = bt_uart_rx_buf[offset + DATA_START + i + 2] * 0x100;
+ 330   3            dp_len += bt_uart_rx_buf[offset + DATA_START + i + 3];
+ 331   3            //
+ 332   3            ret = data_point_handle((unsigned char *)bt_uart_rx_buf + offset + DATA_START + i);
+ 333   3            
+ 334   3            if(SUCCESS == ret)
+ 335   3            {
+ 336   4              //Success tips
+ 337   4            }
+ 338   3            else
+ 339   3            {
+ 340   4              //Error message
+ 341   4            }
+ 342   3            
+ 343   3            i += (dp_len + 4);
+ 344   3          }
+ 345   2          
+ 346   2          break;
+ 347   2          
+ 348   2        case STATE_QUERY_CMD:                                 //Status query
+ 349   2          all_data_update();                               
+ 350   2          break;
+ 351   2          
+ 352   2      #ifdef TUYA_BCI_UART_COMMON_RF_TEST 
+ 353   2        case TUYA_BCI_UART_COMMON_RF_TEST:
+ 354   2          if(my_memcmp((unsigned char *)bt_uart_rx_buf + offset + DATA_START+7,"true",4)==0)
+ 355   2          {
+ 356   3            bt_rssi = (bt_uart_rx_buf[offset + DATA_START+21]-'0')*10 + (bt_uart_rx_buf[offset + DATA_START+22]-'0'
+             -);
+ 357   3            bt_rssi = -bt_rssi;
+ 358   3            bt_rf_test_result(1,bt_rssi);
+ 359   3          }
+ 360   2          else
+ 361   2          {
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 7   
+
+ 362   3            bt_rf_test_result(0,0);
+ 363   3          }
+ 364   2          break;
+ 365   2      #endif
+ 366   2      
+ 367   2      #ifdef TUYA_BCI_UART_COMMON_SEND_STORAGE_TYPE 
+ 368   2        case TUYA_BCI_UART_COMMON_SEND_STORAGE_TYPE:
+ 369   2          bt_send_recordable_dp_data_result(bt_uart_rx_buf[offset + DATA_START]);
+ 370   2          break;
+ 371   2      #endif
+ 372   2      
+ 373   2      #ifdef TUYA_BCI_UART_COMMON_SEND_TIME_SYNC_TYPE 
+ 374   2        case TUYA_BCI_UART_COMMON_SEND_TIME_SYNC_TYPE:
+ 375   2          ret = bt_uart_rx_buf[offset + DATA_START];
+ 376   2          if(ret==0)//Get time succeeded
+ 377   2          {
+ 378   3            if(bt_uart_rx_buf[offset + DATA_START+1]==0x00)//Time format 0 :Get 7 bytes of time and time type + 2 b
+             -ytes of time zone information
+ 379   3            {
+ 380   4              bt_time.nYear = bt_uart_rx_buf[offset + DATA_START+2] + 2018;
+ 381   4      
+ 382   4              bt_time.nMonth = bt_uart_rx_buf[offset + DATA_START+3];
+ 383   4              bt_time.nDay = bt_uart_rx_buf[offset + DATA_START+4];
+ 384   4              bt_time.nHour = bt_uart_rx_buf[offset + DATA_START+5];
+ 385   4              bt_time.nMin = bt_uart_rx_buf[offset + DATA_START+6];
+ 386   4              bt_time.nSec = bt_uart_rx_buf[offset + DATA_START+7];
+ 387   4              bt_time.DayIndex = bt_uart_rx_buf[offset + DATA_START+8];
+ 388   4              time_zone_100 = ((unsigned short)bt_uart_rx_buf[offset + DATA_START+9]<<8)+bt_uart_rx_buf[offset + DAT
+             -A_START+10];
+ 389   4            }
+ 390   3            else if(bt_uart_rx_buf[offset + DATA_START+1]==0x01)//Time format 1: Get 13 bytes of ms-level unix time
+             - + 2 bytes of time zone information
+ 391   3            {
+ 392   4              my_memcpy(current_timems_string,&bt_uart_rx_buf[offset + DATA_START+2],13);
+ 393   4              time_stamp_ms = my_atoll(current_timems_string);
+ 394   4              time_zone_100 = ((unsigned short)bt_uart_rx_buf[offset + DATA_START+15]<8)+bt_uart_rx_buf[offset + DAT
+             -A_START+16];
+ 395   4            }
+ 396   3            else if(bt_uart_rx_buf[offset + DATA_START+1]==0x02)//Time format 2: Get 7 bytes of time and time type 
+             -+ 2 bytes of time zone information
+ 397   3            {
+ 398   4              bt_time.nYear = bt_uart_rx_buf[offset + DATA_START+2] + 2000;
+ 399   4              bt_time.nMonth = bt_uart_rx_buf[offset + DATA_START+3];
+ 400   4              bt_time.nDay = bt_uart_rx_buf[offset + DATA_START+4];
+ 401   4              bt_time.nHour = bt_uart_rx_buf[offset + DATA_START+5];
+ 402   4              bt_time.nMin = bt_uart_rx_buf[offset + DATA_START+6];
+ 403   4              bt_time.nSec = bt_uart_rx_buf[offset + DATA_START+7];
+ 404   4              bt_time.DayIndex = bt_uart_rx_buf[offset + DATA_START+8];
+ 405   4              time_zone_100 = ((unsigned short)bt_uart_rx_buf[offset + DATA_START+9]<<8)+bt_uart_rx_buf[offset + DAT
+             -A_START+10];
+ 406   4            }
+ 407   3            bt_time_sync_result(0,bt_uart_rx_buf[offset + DATA_START+1],bt_time,time_zone_100,time_stamp_ms);
+ 408   3          }
+ 409   2          else//Failed to get time
+ 410   2          {
+ 411   3            bt_time_sync_result(1,bt_uart_rx_buf[offset + DATA_START+1],bt_time,time_zone_100,time_stamp_ms);
+ 412   3          }
+ 413   2          break;
+ 414   2      #endif
+ 415   2      
+ 416   2      #ifdef TUYA_BCI_UART_COMMON_MODIFY_ADV_INTERVAL
+ 417   2        case TUYA_BCI_UART_COMMON_MODIFY_ADV_INTERVAL:
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 8   
+
+ 418   2          bt_modify_adv_interval_result(bt_uart_rx_buf[offset + DATA_START]);
+ 419   2          break;
+ 420   2      #endif
+ 421   2      #ifdef TUYA_BCI_UART_COMMON_TURNOFF_SYSTEM_TIME
+ 422   2        case TUYA_BCI_UART_COMMON_TURNOFF_SYSTEM_TIME:
+ 423   2          bt_close_timer_result(bt_uart_rx_buf[offset + DATA_START]);
+ 424   2          break;
+ 425   2      #endif
+ 426   2      #ifdef TUYA_BCI_UART_COMMON_ENANBLE_LOWER_POWER
+ 427   2        case TUYA_BCI_UART_COMMON_ENANBLE_LOWER_POWER:
+ 428   2          bt_enable_lowpoer_result(bt_uart_rx_buf[offset + DATA_START]);
+ 429   2          break;
+ 430   2      #endif
+ 431   2      #ifdef TUYA_BCI_UART_COMMON_SEND_ONE_TIME_PASSWORD_TOKEN
+ 432   2        case TUYA_BCI_UART_COMMON_SEND_ONE_TIME_PASSWORD_TOKEN:
+ 433   2          bt_send_one_time_password_token_result(bt_uart_rx_buf[offset + DATA_START]);
+ 434   2          break;
+ 435   2      #endif
+ 436   2      #ifdef TUYA_BCI_UART_COMMON_ACTIVE_DISCONNECT
+ 437   2        case TUYA_BCI_UART_COMMON_ACTIVE_DISCONNECT:
+ 438   2          bt_disconnect_result(bt_uart_rx_buf[offset + DATA_START]);
+ 439   2          break;
+ 440   2      #endif
+ 441   2      #ifdef TUYA_BCI_UART_COMMON_QUERY_MCU_VERSION
+ 442   2        case TUYA_BCI_UART_COMMON_QUERY_MCU_VERSION:  
+ 443   2          length = set_bt_uart_buffer(length,(unsigned char *)MCU_APP_VER_NUM,3);
+ 444   2          length = set_bt_uart_buffer(length,(unsigned char *)MCU_HARD_VER_NUM,3);
+ 445   2          bt_uart_write_frame(TUYA_BCI_UART_COMMON_QUERY_MCU_VERSION,length);
+ 446   2          break;
+ 447   2      #endif
+ 448   2      #ifdef TUYA_BCI_UART_COMMON_FACTOR_RESET_NOTIFY
+ 449   2        case TUYA_BCI_UART_COMMON_FACTOR_RESET_NOTIFY:  
+ 450   2          bt_factor_reset_notify();
+ 451   2          break;
+ 452   2      #endif
+ 453   2      #ifdef SUPPORT_MCU_FIRM_UPDATE
+ 454   2          case TUYA_BCI_UART_COMMON_MCU_OTA_REQUEST:
+ 455   2          case TUYA_BCI_UART_COMMON_MCU_OTA_FILE_INFO:
+ 456   2          case TUYA_BCI_UART_COMMON_MCU_OTA_FILE_OFFSET:
+ 457   2          case TUYA_BCI_UART_COMMON_MCU_OTA_DATA:
+ 458   2          case TUYA_BCI_UART_COMMON_MCU_OTA_END:
+ 459   2          total_len = bt_uart_rx_buf[offset + LENGTH_HIGH] * 0x100;
+ 460   2          total_len += bt_uart_rx_buf[offset + LENGTH_LOW];
+ 461   2          //mcu_ota_proc(cmd_type,&bt_uart_rx_buf[offset + DATA_START],total_len);
+ 462   2            break;
+ 463   2      #endif   
+ 464   2      
+ 465   2        default:
+ 466   2          break;
+ 467   2        }
+ 468   1      }
+*** WARNING C280 IN LINE 270 OF mcu_sdk\system.c: 'firmware_addr': unreferenced local variable
+*** WARNING C280 IN LINE 271 OF mcu_sdk\system.c: 'firm_length': unreferenced local variable
+*** WARNING C280 IN LINE 272 OF mcu_sdk\system.c: 'firm_update_flag': unreferenced local variable
+ 469          /*****************************************************************************
+ 470          Function name:get_queue_total_data
+ 471          Function description: read data in the queue
+ 472          Input parameters: none
+ 473          Return parameter: none
+ 474          *****************************************************************************/
+ 475          unsigned char get_queue_total_data(void)
+ 476          {
+C51 COMPILER V9.60.0.0   SYSTEM                                                            08/31/2021 12:55:22 PAGE 9   
+
+ 477   1        if(queue_in != queue_out)
+ 478   1          return 1;
+ 479   1        else
+ 480   1          return 0;
+ 481   1      }
+ 482          /*****************************************************************************
+ 483          Function name:Queue_Read_Byte
+ 484          Function description: Read 1 byte data of queue
+ 485          Input parameters: none
+ 486          Return parameter: none
+ 487          *****************************************************************************/
+ 488          unsigned char Queue_Read_Byte(void)
+ 489          {
+ 490   1        unsigned char value;
+ 491   1        
+ 492   1        if(queue_out != queue_in)
+ 493   1        {
+ 494   2          //Data is not empty
+ 495   2          if(queue_out >= (unsigned char *)(bt_queue_buf + sizeof(bt_queue_buf)))
+ 496   2          {
+ 497   3            //Data has reached the end
+ 498   3            queue_out = (unsigned char *)(bt_queue_buf);
+ 499   3          }
+ 500   2          
+ 501   2          value = *queue_out ++;   
+ 502   2        }
+ 503   1        
+ 504   1        return value;
+ 505   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2337    ----
+   CONSTANT SIZE    =     34    ----
+   XDATA SIZE       =    749      75
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  4 WARNING(S),  0 ERROR(S)
