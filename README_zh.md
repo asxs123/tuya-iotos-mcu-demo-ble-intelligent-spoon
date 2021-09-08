@@ -13,6 +13,7 @@
 + 频率控制
 
   
+![33bdb933c18d97fe11adc266d0ceead](https://user-images.githubusercontent.com/54346276/132464349-fdd719e9-4566-4177-bc6d-523f500fa5af.jpg)
 
 
 
@@ -21,7 +22,7 @@
 ### 编译与烧录
 + 下载Tuya IoTOS Embeded Code
 
-+ 执行test.uvprojx文件
++ 执行intelligent-spoon.uvproj文件
 
 + 点击软件中的编译，并完成下载
 
@@ -70,8 +71,8 @@
 
 | ADC  |  UASRT1  | Frequency |
 | :--: | :------: | :-------: |
-| P5.5 | P3.3 TXD |   P5.4    |
-|      | P3.2 RXD |           |
+| P5.5 | P3.3 TXD |   P3.1    |
+|      | P3.2 RXD |   P3.0    |
 
 ## 相关文档
 
