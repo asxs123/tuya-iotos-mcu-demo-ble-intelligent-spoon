@@ -6,7 +6,7 @@ This project is developed using Tuya SDK, which enables you to quickly develop b
 
 ## Introduction  
 
-![Image of Yaktocat](https://image.lceda.cn/avatars/2021/8/Ws93ELldBIXITlaCq0kmIJoMG4y8Th6FQbyloXKx.png)
+
 
 In this demo, we will show you how to use the MCU SDK to develop a spoon that can enhance salty flavor and connect this spoon to the Tuya IoT Cloud with the Tuya Smart app.
 
@@ -16,12 +16,14 @@ Features:
 
 + Frequency control
 
+![33bdb933c18d97fe11adc266d0ceead](https://user-images.githubusercontent.com/54346276/132464349-fdd719e9-4566-4177-bc6d-523f500fa5af.jpg)
+
 ## Get started
 
 ### Compile and flash
 + Download Tuya IoTOS Embedded Code.
 
-+ Run `test.uvprojx`.
++ Run `intelligent-spoon.uvproj`.
 
 + Click **Compile** on the software to download the code.
 
@@ -64,8 +66,8 @@ Main function: `main()`
 
 | ADC | UASRT1 | Frequency |
 | :--: | :------: | :-------: |
-| P5.5 | P3.3 TXD | P5.4 |
-|      | P3.2 RXD |           |
+| P5.5 | P3.3 TXD | P3.1 |
+|      | P3.2 RXD | P3.0          |
 
 ## Reference
 
